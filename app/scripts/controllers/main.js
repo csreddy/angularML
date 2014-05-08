@@ -33,7 +33,7 @@ app.controller('MainCtrl', function($scope, $http) {
 
 });
 
-app.controller('ChartCtrl', ['$scope',  'DataService',
+app.controller('ChartCtrl', ['$scope', 'DataService',
 	function($scope, DataService) {
 		$scope.a = "Test";
 		var items = [];
@@ -48,9 +48,9 @@ app.controller('ChartCtrl', ['$scope',  'DataService',
 			DataService.getDBResponse($scope.db).then(function(dataResponse) {
 				// this callback will be called asynchronously
 				$scope.response = dataResponse.data || {};
-				$scope.appserver = getAttachedAppServer($scope.response) || [];
+				$scope.appservers = getAttachedAppServer($scope.response) || [];
 				$scope.forests = getAttachedForests($scope.response) || {};
-				console.log($scope.appserver);
+				console.log($scope.appservers);
 
 				// make the database root node 
 				items.push(
@@ -62,46 +62,24 @@ app.controller('ChartCtrl', ['$scope',  'DataService',
 						image: "scripts/demo/images/photos/d.png"
 					})
 				);
-
-				// show appserver(s) if exists
-				angular.forEach($scope.appserver, function(appserver, key) {
-					items.push(
-						new primitives.orgdiagram.ItemConfig({
-							id: 10, //items.length + $scope.appserver.indexOf(appserver) + 1,
-							parent: 0,
-							title: appserver,
-							description: "app server",
-							image: "scripts/demo/images/photos/a.png",
-							itemTitleColor: primitives.common.Colors.BurlyWood,
-							itemType: primitives.orgdiagram.ItemType.Adviser
-							//	  adviserPlacementType: primitives.orgdiagram.AdviserPlacementType.Right,
-							//	  groupTitle: "App Server"
-						})
-					);
-				});
-
-				pushForestIntoChart($scope.forests, function () {
-					console.log("callback invoked!");
-					groupForestsByHosts($scope.forestsOnHosts);
-				});
-			//	console.warn(JSON.stringify($scope.forestsOnHosts))
-			//	groupForestsByHosts($scope.forestsOnHosts);			
-
+						
+				pushAppServerToChart($scope.appservers);
+		
+				pushForestToChart($scope.forests);
+			
+				groupForestsByHosts();
+			
+				
+				//----------------------------------------------
 				options.items = items;
-				//      options.cursorItem = 0;
-				//   options.hasSelectorCheckbox = primitives.common.Enabled.True;
-
 				$scope.options = options;
-
 				$scope.setCursorItem = function(cursorItem) {
 					$scope.options.cursorItem = cursorItem;
 				};
 
-
-
 			});
 
-
+			
 
 		}
 
@@ -118,6 +96,24 @@ app.controller('ChartCtrl', ['$scope',  'DataService',
 				}
 			});
 			return appservers;
+		}
+
+		function pushAppServerToChart(appservers) {
+			angular.forEach(appservers, function(appserver, key) {
+				items.push(
+					new primitives.orgdiagram.ItemConfig({
+						id: 10, //items.length + $scope.appserver.indexOf(appserver) + 1,
+						parent: 0,
+						title: appserver,
+						description: "app server",
+						image: "scripts/demo/images/photos/a.png",
+						itemTitleColor: primitives.common.Colors.BurlyWood,
+						itemType: primitives.orgdiagram.ItemType.Adviser
+						//	  adviserPlacementType: primitives.orgdiagram.AdviserPlacementType.Right,
+						//	  groupTitle: "App Server"
+					})
+				);
+			});
 		}
 
 		function getAttachedForests(response) {
@@ -147,9 +143,76 @@ app.controller('ChartCtrl', ['$scope',  'DataService',
 			});
 			return forestHost;
 		}
+
+		function groupForestsByHosts() {
+			
+			$scope.$watch('forestsOnHosts', function () {
+			console.log("forestsOnHosts ======= " + JSON.stringify($scope.forestsOnHosts));
+				console.log('watching now...');
+				options.annotations = [];
+				// group the forests on same host using annotations
+				annotateForests($scope.forestsOnHosts);
+				
+			}, true);
+
+		}
+
+		function pushForestToChart(forests) {
+			// loop through each forest details & get its host name
+			angular.forEach(forests, function(forest, key) {
+				//	  console.log("key  = " + key);
+				//	  console.log(forest);
+				DataService.getForestResponse(forest).then(function(dataResponse) {
+					var index = $scope.forests.indexOf(forest);
+					//	  console.log("index = " + (index + 1));
+					var host = getForestHost(dataResponse.data);
+
+					if ($scope.forestHosts.indexOf(host) === -1) {
+						$scope.forestHosts.push(host);
+					}
+
+					if ($scope.forestHosts.length > 1) $scope.forestHosts.sort();
+
+					// push each ItemConfig object into items array
+					items.push(
+						new primitives.orgdiagram.ItemConfig({
+							id: index + 1,
+							parent: 0,
+							title: forest,
+							description: host,
+							image: "scripts/demo/images/photos/f.png",
+							itemTitleColor: primitives.common.Colors.Green,
+							groupTitleColor: primitives.common.Colors.Black,
+							groupTitle: host
+						})
+					);
+
+					// sort the items based on their id
+					items.sort(function(a, b) {
+						if (a.id > b.id) return 1;
+						if (a.id < b.id) return -1;
+						return 0;
+					});
+
+					// get json showing host & forests key values
+					$scope.forestsOnHosts[host] = function() {
+						if ($scope.forestsOnHosts[host] === undefined || $scope.forestsOnHosts[host] === null) {
+						//	console.log(JSON.stringify($scope.forestsOnHosts[host]));
+							return new Array(forest);
+						} else {
+							var arr = $scope.forestsOnHosts[host];
+							arr.push(forest);
+							return arr.sort();
+						}
+					}.call();
+
+					//	console.log(items);			
+					console.log("each loop forestsOnHosts = " + JSON.stringify($scope.forestsOnHosts));
+				});
+			});
+		}
 		
-		function groupForestsByHosts(forestsOnHosts) {
-			// group the forests on same host using annotations
+		function annotateForests(forestsOnHosts) {
 			angular.forEach(forestsOnHosts, function(forests, key) {
 				if (forests.length > 1) {
 					console.log("inside----------");
@@ -186,80 +249,11 @@ app.controller('ChartCtrl', ['$scope',  'DataService',
 						lineType: primitives.common.LineType.Dashed
 					})
 				}
-				console.log("ann length = " + options.annotations.length);
+				console.log("annotation length = " + options.annotations.length);
 
 			});
 		}
-
-		function pushForestIntoChart(forests, callback) {
-			// loop through each forest details & get its host name
-			angular.forEach(forests, function(forest, key) {
-				//	  console.log("key before = " + (key+1));
-				//	  console.log(forest);
-				DataService.getForestResponse(forest).then(function(dataResponse) {
-					var index = $scope.forests.indexOf(forest);
-					//	  console.log("index = " + (index + 1));
-					var host = getForestHost(dataResponse.data);
-
-					if ($scope.forestHosts.indexOf(host) === -1) {
-						$scope.forestHosts.push(host);
-					}
-
-					if ($scope.forestHosts.length > 1) $scope.forestHosts.sort();
-
-					// push each ItemConfig object into items array
-					console.log(JSON.stringify($scope.forestsOnHosts));
-					//	  console.log($scope.forestHosts);
-					items.push(
-						new primitives.orgdiagram.ItemConfig({
-							id: index + 1,
-							parent: 0,
-							title: forest,
-							description: host,
-							image: "scripts/demo/images/photos/f.png",
-							itemTitleColor: primitives.common.Colors.Green,
-							groupTitleColor: primitives.common.Colors.Black,
-							groupTitle: host
-						})
-					);
-
-					// sort the items based on their id
-					items.sort(function(a, b) {
-						if (a.id > b.id) return 1;
-						if (a.id < b.id) return -1;
-						return 0;
-					});
-
-
-					// get json showing host & forests key values
-					$scope.forestsOnHosts[host] = function() {
-						if ($scope.forestsOnHosts[host] === undefined || $scope.forestsOnHosts[host] === null) {
-							console.log(JSON.stringify($scope.forestsOnHosts[host]));
-							return new Array(forest);
-						} else {
-							console.log(JSON.stringify($scope.forestsOnHosts[host]));
-							var arr = $scope.forestsOnHosts[host];
-							arr.push(forest);
-							return arr.sort();
-						}
-					}.call();
-
-					//	console.log(items);			
-					console.log("forestsOnHosts = " + JSON.stringify($scope.forestsOnHosts));
-					
-					// group the forests on same host using annotations
-				//	groupForestsByHosts($scope.forestsOnHosts)
-				});
-				
-			});
-
-			console.log("inside pushForestIntoChart");
-			console.log("oustide forestsOnHosts = " + JSON.stringify($scope.forestsOnHosts));
-			if(typeof callback == "function") 
-			        callback();
-		}
-
-
+		
 	}
 ]);
 
