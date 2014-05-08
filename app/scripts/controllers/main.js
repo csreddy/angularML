@@ -85,10 +85,7 @@ app.controller('ChartCtrl', ['$scope',  'DataService',
 					groupForestsByHosts($scope.forestsOnHosts);
 				});
 			//	console.warn(JSON.stringify($scope.forestsOnHosts))
-			//	groupForestsByHosts($scope.forestsOnHosts);
-		
-
-				
+			//	groupForestsByHosts($scope.forestsOnHosts);			
 
 				options.items = items;
 				//      options.cursorItem = 0;
