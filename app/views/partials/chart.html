@@ -8,12 +8,19 @@
 </div>
 
 <div ng-init="init()">
-	<h5>DB: {{db}}</h5>
-	<p>{{obj}}</p>
-	Forests:
-	<ul ng-repeat="forest in forests"> 
-		<li>{{forest}}</li>
-	</ul>
+	<p>DB: {{db}}</p>
+	<p>Forests:{{forests}}</p>
+	<p>AppServer: {{appservers}}</p>
+	<p>Forests on each Host: {{forestsOnHosts}}</p>
+	<p>Replica Cluster: {{replicaCluster}}</p>
+	<hr><h5>From factory service</div></h5>
+	<p>Resources: {{myResource1}} <br> 
+					{{myResource2}} <br> 
+					{{myResource3}} <br> 
+					{{myResource4}} <br>
+					{{myResource5}} <br>
+					</p>	
+	
 </div>
 <div id="test">
 			<div class="container">

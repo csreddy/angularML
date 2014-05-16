@@ -29,17 +29,17 @@ app.controller('MainCtrl', function($scope, $http) {
 			$scope.error = status;
 		});
 
-	}
+	};
 
 });
 
-app.controller('ChartCtrl', ['$scope', 'DataService',
-	function($scope, DataService) {
+app.controller('ChartCtrl', ['$scope', 'DataService', 'Resource',
+	function($scope, DataService, Resource) {
 		$scope.a = "Test";
 		var items = [];
 		var annotations = [];
 		var options = new primitives.orgdiagram.Config();
-		$scope.db = "MyDatabase";
+		$scope.db = "MyMasterDatabase";
 		$scope.forestHosts = [];
 		$scope.forestsOnHosts = {};
 		$scope.init = function() {
@@ -68,11 +68,32 @@ app.controller('ChartCtrl', ['$scope', 'DataService',
 				pushForestToChart($scope.forests);
 			
 				groupForestsByHosts();
-			
+				
+				$scope.replicaCluster = getReplicaClusters($scope.response);
+
+				//--------------------------
+		
+
+				Resource.setMasterDB($scope.db);
+
+				Resource.getResources($scope.db).then(function() {
+					$scope.myResource1 = Resource.masterForests;
+					$scope.myResource2 = Resource.replicaClusters;
+					$scope.myResource3 = Resource.forestHosts;
+					$scope.myResource4 = Resource.forestsOnHosts;
+					$scope.myResource5 = Resource.replicaDBs;
+				});
+					console.warn('Resource from main', Resource);
+					console.warn('Resource.masterForests from main', Resource.getMasterForests($scope.db));
 				
 				//----------------------------------------------
 				options.items = items;
+				options.normalLevelShift = 20;
+				options.normalItemsInterval = 20;
+				options.lineItemsInterval = 20;
+				options.hasSelectorCheckbox = primitives.common.Enabled.False;
 				$scope.options = options;
+				
 				$scope.setCursorItem = function(cursorItem) {
 					$scope.options.cursorItem = cursorItem;
 				};
@@ -81,7 +102,7 @@ app.controller('ChartCtrl', ['$scope', 'DataService',
 
 			
 
-		}
+		};
 
 
 
@@ -102,7 +123,7 @@ app.controller('ChartCtrl', ['$scope', 'DataService',
 			angular.forEach(appservers, function(appserver, key) {
 				items.push(
 					new primitives.orgdiagram.ItemConfig({
-						id: 10, //items.length + $scope.appserver.indexOf(appserver) + 1,
+						id: items.length + appservers.indexOf(appserver) + 1,
 						parent: 0,
 						title: appserver,
 						description: "app server",
@@ -113,6 +134,7 @@ app.controller('ChartCtrl', ['$scope', 'DataService',
 						//	  groupTitle: "App Server"
 					})
 				);
+				
 			});
 		}
 
@@ -147,8 +169,8 @@ app.controller('ChartCtrl', ['$scope', 'DataService',
 		function groupForestsByHosts() {
 			
 			$scope.$watch('forestsOnHosts', function () {
-			console.log("forestsOnHosts ======= " + JSON.stringify($scope.forestsOnHosts));
-				console.log('watching now...');
+		//	console.log("forestsOnHosts ======= " + JSON.stringify($scope.forestsOnHosts));
+				//console.log('watching now...');
 				options.annotations = [];
 				// group the forests on same host using annotations
 				annotateForests($scope.forestsOnHosts);
@@ -207,7 +229,7 @@ app.controller('ChartCtrl', ['$scope', 'DataService',
 					}.call();
 
 					//	console.log(items);			
-					console.log("each loop forestsOnHosts = " + JSON.stringify($scope.forestsOnHosts));
+				//	console.log("each loop forestsOnHosts = " + JSON.stringify($scope.forestsOnHosts));
 				});
 			});
 		}
@@ -215,7 +237,7 @@ app.controller('ChartCtrl', ['$scope', 'DataService',
 		function annotateForests(forestsOnHosts) {
 			angular.forEach(forestsOnHosts, function(forests, key) {
 				if (forests.length > 1) {
-					console.log("inside----------");
+			//		console.log("inside----------");
 					options.annotations.push({
 						annotationType: primitives.common.AnnotationType.Shape,
 						// get item ids of forests to annotate
@@ -249,13 +271,29 @@ app.controller('ChartCtrl', ['$scope', 'DataService',
 						lineType: primitives.common.LineType.Dashed
 					})
 				}
-				console.log("annotation length = " + options.annotations.length);
+			//	console.log("annotation length = " + options.annotations.length);
 
 			});
 		}
 		
-	}
-]);
+		function getReplicaClusters(response) {
+			var clusters = [];
+			var relGroup = response['database-default']['relations']['relation-group'];
+			angular.forEach(relGroup, function(value, key){
+				if (value.typeref === 'clusters') {
+					angular.forEach(value.relation, function(cluster, key){
+						if (cluster.roleref === 'replica') {
+							clusters.push(cluster.nameref);
+						}
+					});
+				}
+			});
+		//	console.log("cluster = " + clusters);
+			return clusters;
+		}
+
+		
+	}]);
 
 
 app.directive('ngChart', function() {
