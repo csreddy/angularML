@@ -27,6 +27,7 @@ app.factory('Resource', ['$http', '$q', function ($http, $q) {
 	var Resource = {
 		masterDB: null,
 		replicaDBs: {},
+		appservers: null,
 		replicaClusters: [],
 		masterForests: null,
 		forestHosts:[],
@@ -34,65 +35,62 @@ app.factory('Resource', ['$http', '$q', function ($http, $q) {
 	
 	
 	setMasterDB: function (dbname) {
-		console.log('inside setMasterDB', dbname);
 		this.masterDB = dbname;
-	},
-
-
-	getMasterForests: function(dbname) {
-		var  url = '/manage/v2/databases/'+ dbname + '?format=json';
-		var self = this;
-		
-		return	$http.get(url).then(function (response) {
-			self.masterForests = getAttachedForests(response.data);
-			console.warn('Master Forests = ', JSON.stringify(self));
-	});
 	},
 
 	getResources: function (dbname) {
 		var  url = '/manage/v2/databases/'+ dbname + '?format=json';
 		return $http.get(url).then(function (response) {
 			Resource.masterForests = getAttachedForests(response.data);
-			console.warn('Master Forests = ', Resource.masterForests);
-			return response;
-		}).then(function (response) {
+			Resource.appservers = getAttachedAppServers(response.data);
 			Resource.replicaClusters = getReplicaClusters(response.data);
-			console.warn('Replica Cluster = ',Resource.replicaClusters);
+			console.warn('Master Forests = ', Resource.masterForests);
 			return Resource.replicaClusters;
 		}).then(function(replicaClusters) {
 			var arr = [];
 			angular.forEach(replicaClusters, function(cluster) {
 				arr.push($http.get('/manage/v2/clusters/'+ cluster + '?format=json'));
 			});
-			$q.all(arr).then(function(results) {
+			return $q.all(arr).then(function(results) {
 				angular.forEach(results, function(result) {
 					var cluster = result.data['foreign-cluster-default'].name;
 					var dbs = getReplicaDBs(result.data);
 					Resource.replicaDBs[cluster] = dbs; 
 				});
 			});
-			// var  url = '/manage/v2/clusters/'+ replicaClusters + '?format=json';
-			// return	$http.get(url).then(function(response) {
-			// 	console.log('response from cluster', response);
-			// 	Resource.replicaDBs = getReplicaDBs(response.data);	
-			// });
-			
 		}).then(function() {
-			var arr = [];
+			var forestarr = [];
 				angular.forEach(Resource.masterForests, function(forestName){
-					arr.push($http.get('/manage/v2/forests/'+ forestName + '?format=json'));
-				});
-				 $q.all(arr).then(function (results) {
+					forestarr.push($http.get('/manage/v2/forests/'+ forestName + '?format=json'));
+				});		
+			return $q.all(forestarr).then(function (results) {
 				angular.forEach(results, function(result){
 					var host = getForestHost(result.data);
 					var forest = result.data['forest-default'].name;
 					Resource.forestHosts.push(host);
 					// group forest by hosts
-					groupForestsByHost(Resource,host, forest);
-					
+					groupForestsByHost(Resource, host, forest);	
 				});
 			});
 		});
+	},
+
+	getForestsOnHosts: function() {
+			var forestarr = [];
+				angular.forEach(Resource.masterForests, function(forestName){
+					forestarr.push($http.get('/manage/v2/forests/'+ forestName + '?format=json'));
+				});
+				console.log('pushing to array');
+			return	$q.all(forestarr).then(function (results) {
+				angular.forEach(results, function(result){
+					var host = getForestHost(result.data);
+					var forest = result.data['forest-default'].name;
+					Resource.forestHosts.push(host);
+					// group forest by hosts
+					groupForestsByHost(Resource, host, forest);
+					console.warn('getForestsOnHosts = ', Resource.forestsOnHosts);			
+				});
+			});
 	}
 
 
@@ -104,6 +102,20 @@ app.factory('Resource', ['$http', '$q', function ($http, $q) {
 	return Resource;
 	
 }]);
+
+		function getAttachedAppServers(response) {
+			var appservers = [];
+			var relGroup = response['database-default']['relations']['relation-group'];
+			angular.forEach(relGroup, function(value) {
+				if (value.typeref === 'servers') {
+					angular.forEach(value.relation, function(server) {
+						appservers.push(server.nameref);
+					});
+				}
+			});
+			return appservers;
+		}
+
 
 function getReplicaDBs (response) {
 	var replicaDBs = [];

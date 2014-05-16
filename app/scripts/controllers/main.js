@@ -42,6 +42,39 @@ app.controller('ChartCtrl', ['$scope', 'DataService', 'Resource',
 		$scope.db = "MyMasterDatabase";
 		$scope.forestHosts = [];
 		$scope.forestsOnHosts = {};
+
+
+		$scope.renderChart = function() {
+			Resource.setMasterDB($scope.db);
+
+			Resource.getResources($scope.db).then(function() {
+				$scope.myResource1 = Resource.masterForests;
+				$scope.myResource2 = Resource.replicaClusters;
+				$scope.myResource3 = Resource.forestHosts;
+				$scope.myResource4 = Resource.forestsOnHosts;
+				$scope.myResource5 = Resource.replicaDBs;
+				$scope.myResource6 = Resource.appservers;
+				
+				setChartRoot($scope.db);
+				pushAppServerToChart($scope.myResource6);
+				pushForestsToChart($scope.myResource4);
+
+
+				options.items = items;
+				options.normalLevelShift = 20;
+				options.normalItemsInterval = 20;
+				options.lineItemsInterval = 20;
+				options.hasSelectorCheckbox = primitives.common.Enabled.False;
+				$scope.options = options;
+				
+				$scope.setCursorItem = function(cursorItem) {
+					$scope.options.cursorItem = cursorItem;
+				};
+
+				});
+		};
+
+
 		$scope.init = function() {
 			var url = '/manage/v2/databases/' + $scope.db + '?format=json';
 
@@ -72,19 +105,9 @@ app.controller('ChartCtrl', ['$scope', 'DataService', 'Resource',
 				$scope.replicaCluster = getReplicaClusters($scope.response);
 
 				//--------------------------
-		
+				
 
-				Resource.setMasterDB($scope.db);
-
-				Resource.getResources($scope.db).then(function() {
-					$scope.myResource1 = Resource.masterForests;
-					$scope.myResource2 = Resource.replicaClusters;
-					$scope.myResource3 = Resource.forestHosts;
-					$scope.myResource4 = Resource.forestsOnHosts;
-					$scope.myResource5 = Resource.replicaDBs;
-				});
 					console.warn('Resource from main', Resource);
-					console.warn('Resource.masterForests from main', Resource.getMasterForests($scope.db));
 				
 				//----------------------------------------------
 				options.items = items;
@@ -104,6 +127,19 @@ app.controller('ChartCtrl', ['$scope', 'DataService', 'Resource',
 
 		};
 
+
+function setChartRoot (db) {
+	// make the database root node 
+	items.push(
+		new primitives.orgdiagram.ItemConfig({
+			id: 0,
+			parent: null,
+			title: db,
+			description: "master database",
+			image: "scripts/demo/images/photos/d.png"
+		})
+	);
+}
 
 
 		function getAttachedAppServer(response) {
@@ -141,9 +177,9 @@ app.controller('ChartCtrl', ['$scope', 'DataService', 'Resource',
 		function getAttachedForests(response) {
 			var forests = [];
 			var relGroup = response['database-default']['relations']['relation-group'];
-			angular.forEach(relGroup, function(value, key) {
+			angular.forEach(relGroup, function(value) {
 				if (value.typeref === 'forests') {
-					angular.forEach(value.relation, function(forest, key) {
+					angular.forEach(value.relation, function(forest) {
 						forests.push(forest.nameref);
 					});
 				}
@@ -156,9 +192,9 @@ app.controller('ChartCtrl', ['$scope', 'DataService', 'Resource',
 		function getForestHost(response) {
 			var forestHost = [];
 			var relGroup = response['forest-default']['relations']['relation-group'];
-			angular.forEach(relGroup, function(value, key) {
+			angular.forEach(relGroup, function(value) {
 				if (value.typeref === 'hosts') {
-					angular.forEach(value.relation, function(host, key) {
+					angular.forEach(value.relation, function(host) {
 						forestHost = host.nameref;
 					});
 				}
@@ -179,23 +215,12 @@ app.controller('ChartCtrl', ['$scope', 'DataService', 'Resource',
 
 		}
 
-		function pushForestToChart(forests) {
-			// loop through each forest details & get its host name
-			angular.forEach(forests, function(forest, key) {
-				//	  console.log("key  = " + key);
-				//	  console.log(forest);
-				DataService.getForestResponse(forest).then(function(dataResponse) {
-					var index = $scope.forests.indexOf(forest);
-					//	  console.log("index = " + (index + 1));
-					var host = getForestHost(dataResponse.data);
 
-					if ($scope.forestHosts.indexOf(host) === -1) {
-						$scope.forestHosts.push(host);
-					}
-
-					if ($scope.forestHosts.length > 1) $scope.forestHosts.sort();
-
-					// push each ItemConfig object into items array
+function pushForestsToChart (forestsonhosts) {
+	angular.forEach(forestsonhosts, function(forests, host) {
+		angular.forEach(forests, function(forest) {
+			var index = $scope.myResource1.indexOf(forest);
+			// push each ItemConfig object into items array
 					items.push(
 						new primitives.orgdiagram.ItemConfig({
 							id: index + 1,
@@ -208,36 +233,38 @@ app.controller('ChartCtrl', ['$scope', 'DataService', 'Resource',
 							groupTitle: host
 						})
 					);
+		});
+	});
 
-					// sort the items based on their id
-					items.sort(function(a, b) {
-						if (a.id > b.id) return 1;
-						if (a.id < b.id) return -1;
-						return 0;
-					});
+	annotateForests($scope.myResource4);
+}
 
-					// get json showing host & forests key values
-					$scope.forestsOnHosts[host] = function() {
-						if ($scope.forestsOnHosts[host] === undefined || $scope.forestsOnHosts[host] === null) {
-						//	console.log(JSON.stringify($scope.forestsOnHosts[host]));
-							return new Array(forest);
-						} else {
-							var arr = $scope.forestsOnHosts[host];
-							arr.push(forest);
-							return arr.sort();
-						}
-					}.call();
 
-					//	console.log(items);			
-				//	console.log("each loop forestsOnHosts = " + JSON.stringify($scope.forestsOnHosts));
-				});
-			});
-		}
+function pushForestsToChart2 (forests) {
+	angular.forEach(forests, function(forest) {
+		var index = $scope.myResource1.indexOf(forest);
+		// push each ItemConfig object into items array
+					items.push(
+						new primitives.orgdiagram.ItemConfig({
+							id: index + 1,
+							parent: 0,
+							title: forest,
+							description: 'host',
+							image: "scripts/demo/images/photos/f.png",
+							itemTitleColor: primitives.common.Colors.Green,
+							groupTitleColor: primitives.common.Colors.Black,
+							groupTitle: 'host'
+						})
+					);	
+	});
+	annotateForests($scope.myResource4);
+}
+
 		
-		function annotateForests(forestsOnHosts) {
-			angular.forEach(forestsOnHosts, function(forests, key) {
+		function annotateForests(hostforests) {
+			console.log('hostforests == ', hostforests);
+			angular.forEach(hostforests, function(forests, key) {
 				if (forests.length > 1) {
-			//		console.log("inside----------");
 					options.annotations.push({
 						annotationType: primitives.common.AnnotationType.Shape,
 						// get item ids of forests to annotate
@@ -279,9 +306,9 @@ app.controller('ChartCtrl', ['$scope', 'DataService', 'Resource',
 		function getReplicaClusters(response) {
 			var clusters = [];
 			var relGroup = response['database-default']['relations']['relation-group'];
-			angular.forEach(relGroup, function(value, key){
+			angular.forEach(relGroup, function(value){
 				if (value.typeref === 'clusters') {
-					angular.forEach(value.relation, function(cluster, key){
+					angular.forEach(value.relation, function(cluster){
 						if (cluster.roleref === 'replica') {
 							clusters.push(cluster.nameref);
 						}
