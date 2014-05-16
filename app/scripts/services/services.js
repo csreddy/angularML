@@ -26,10 +26,10 @@ app.service('DataService', [ '$http', function ($http) {
 app.factory('Resource', ['$http', '$q', function ($http, $q) {
 	var Resource = {
 		masterDB: null,
+		masterForests: null,
 		replicaDBs: {},
 		appservers: null,
 		replicaClusters: [],
-		masterForests: null,
 		forestHosts:[],
 		forestsOnHosts: {},
 	

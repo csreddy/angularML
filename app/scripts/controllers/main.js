@@ -48,16 +48,16 @@ app.controller('ChartCtrl', ['$scope', 'DataService', 'Resource',
 			Resource.setMasterDB($scope.db);
 
 			Resource.getResources($scope.db).then(function() {
-				$scope.myResource1 = Resource.masterForests;
-				$scope.myResource2 = Resource.replicaClusters;
-				$scope.myResource3 = Resource.forestHosts;
-				$scope.myResource4 = Resource.forestsOnHosts;
-				$scope.myResource5 = Resource.replicaDBs;
-				$scope.myResource6 = Resource.appservers;
+				$scope.masterForests = Resource.masterForests;
+				$scope.replicaClusters = Resource.replicaClusters;
+				$scope.forestHosts = Resource.forestHosts;
+				$scope.forestsOnHosts = Resource.forestsOnHosts;
+				$scope.replicaDBs = Resource.replicaDBs;
+				$scope.appservers = Resource.appservers;
 				
 				setChartRoot($scope.db);
-				pushAppServerToChart($scope.myResource6);
-				pushForestsToChart($scope.myResource4);
+				pushAppServerToChart($scope.appservers);
+				pushForestsToChart($scope.forestsOnHosts);
 
 
 				options.items = items;
@@ -75,57 +75,6 @@ app.controller('ChartCtrl', ['$scope', 'DataService', 'Resource',
 		};
 
 
-		$scope.init = function() {
-			var url = '/manage/v2/databases/' + $scope.db + '?format=json';
-
-			DataService.getDBResponse($scope.db).then(function(dataResponse) {
-				// this callback will be called asynchronously
-				$scope.response = dataResponse.data || {};
-				$scope.appservers = getAttachedAppServer($scope.response) || [];
-				$scope.forests = getAttachedForests($scope.response) || {};
-				console.log($scope.appservers);
-
-				// make the database root node 
-				items.push(
-					new primitives.orgdiagram.ItemConfig({
-						id: 0,
-						parent: null,
-						title: $scope.db,
-						description: "master database",
-						image: "scripts/demo/images/photos/d.png"
-					})
-				);
-						
-				pushAppServerToChart($scope.appservers);
-		
-				pushForestToChart($scope.forests);
-			
-				groupForestsByHosts();
-				
-				$scope.replicaCluster = getReplicaClusters($scope.response);
-
-				//--------------------------
-				
-
-					console.warn('Resource from main', Resource);
-				
-				//----------------------------------------------
-				options.items = items;
-				options.normalLevelShift = 20;
-				options.normalItemsInterval = 20;
-				options.lineItemsInterval = 20;
-				options.hasSelectorCheckbox = primitives.common.Enabled.False;
-				$scope.options = options;
-				
-				$scope.setCursorItem = function(cursorItem) {
-					$scope.options.cursorItem = cursorItem;
-				};
-
-			});
-
-			
-
-		};
 
 
 function setChartRoot (db) {
@@ -219,7 +168,7 @@ function setChartRoot (db) {
 function pushForestsToChart (forestsonhosts) {
 	angular.forEach(forestsonhosts, function(forests, host) {
 		angular.forEach(forests, function(forest) {
-			var index = $scope.myResource1.indexOf(forest);
+			var index = $scope.masterForests.indexOf(forest);
 			// push each ItemConfig object into items array
 					items.push(
 						new primitives.orgdiagram.ItemConfig({
@@ -236,13 +185,13 @@ function pushForestsToChart (forestsonhosts) {
 		});
 	});
 
-	annotateForests($scope.myResource4);
+	annotateForests($scope.forestsOnHosts);
 }
 
 
 function pushForestsToChart2 (forests) {
 	angular.forEach(forests, function(forest) {
-		var index = $scope.myResource1.indexOf(forest);
+		var index = $scope.masterForests.indexOf(forest);
 		// push each ItemConfig object into items array
 					items.push(
 						new primitives.orgdiagram.ItemConfig({
@@ -257,7 +206,7 @@ function pushForestsToChart2 (forests) {
 						})
 					);	
 	});
-	annotateForests($scope.myResource4);
+	annotateForests($scope.forestsOnHosts);
 }
 
 		
