@@ -55,12 +55,25 @@ app.controller('ChartCtrl', ['$scope', 'DataService', 'Resource',
 				$scope.replicaDBs = Resource.replicaDBs;
 				$scope.appservers = Resource.appservers;
 				
-				setChartRoot($scope.db);
+				setChartRoot($scope.db, 'master');
+				angular.forEach($scope.replicaDBs, function(dbs) {
+					angular.forEach(dbs, function(db) {
+							setChartRoot(db, 'replica');
+					});
+				
+				});
+		
+			
+			
 				pushAppServerToChart($scope.appservers);
 				pushForestsToChart($scope.forestsOnHosts);
 
 
 				options.items = items;
+				options.connectorType = primitives.common.ConnectorType.Dotted;
+
+
+
 				options.normalLevelShift = 20;
 				options.normalItemsInterval = 20;
 				options.lineItemsInterval = 20;
@@ -77,18 +90,46 @@ app.controller('ChartCtrl', ['$scope', 'DataService', 'Resource',
 
 
 
-function setChartRoot (db) {
+function setChartRoot (db, role) {
 	// make the database root node 
+	var index;
+	if (role === 'master') {
+		index = 0;
+	} else{
+		index =  items.length + 1;
+		annotate(0, index, 'replication');
+	}
+
 	items.push(
 		new primitives.orgdiagram.ItemConfig({
-			id: 0,
+			id: index,
 			parent: null,
 			title: db,
-			description: "master database",
+			description: role,
 			image: "scripts/demo/images/photos/d.png"
 		})
 	);
+
+
 }
+
+
+function annotate (from, to, label) {
+	options.annotations.push({
+		annotationType: primitives.common.AnnotationType.Connector,
+                        fromItem: from,
+                        toItem: to,
+                        label: label,
+                        labelSize: { width: 80, height: 30 },
+                        connectorShapeType: primitives.common.ConnectorShapeType.TwoWay,
+                        color: primitives.common.Colors.Green,
+                        offset: 0,
+                        lineWidth: 2,
+                        lineType: primitives.common.LineType.Dashed,
+                        selectItems: false
+	});
+}
+
 
 
 		function getAttachedAppServer(response) {
@@ -114,8 +155,8 @@ function setChartRoot (db) {
 						description: "app server",
 						image: "scripts/demo/images/photos/a.png",
 						itemTitleColor: primitives.common.Colors.BurlyWood,
-						itemType: primitives.orgdiagram.ItemType.Adviser
-						//	  adviserPlacementType: primitives.orgdiagram.AdviserPlacementType.Right,
+						itemType: primitives.orgdiagram.ItemType.Adviser,
+					    adviserPlacementType: primitives.orgdiagram.AdviserPlacementType.Left
 						//	  groupTitle: "App Server"
 					})
 				);

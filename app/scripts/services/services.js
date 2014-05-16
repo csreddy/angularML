@@ -47,11 +47,11 @@ app.factory('Resource', ['$http', '$q', function ($http, $q) {
 			console.warn('Master Forests = ', Resource.masterForests);
 			return Resource.replicaClusters;
 		}).then(function(replicaClusters) {
-			var arr = [];
+			var clusterArr = [];
 			angular.forEach(replicaClusters, function(cluster) {
-				arr.push($http.get('/manage/v2/clusters/'+ cluster + '?format=json'));
+				clusterArr.push($http.get('/manage/v2/clusters/'+ cluster + '?format=json'));
 			});
-			return $q.all(arr).then(function(results) {
+			return $q.all(clusterArr).then(function(results) {
 				angular.forEach(results, function(result) {
 					var cluster = result.data['foreign-cluster-default'].name;
 					var dbs = getReplicaDBs(result.data);
