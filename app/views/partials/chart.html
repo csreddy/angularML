@@ -7,21 +7,25 @@
   <h3 class="text-muted">angularML</h3>
 </div>
 
-<div ng-init="renderChart()">
-	<p>DB: {{db}}</p>
-	<p>Forests:{{masterForests}}</p>
-	<p>AppServer: {{appservers}}</p>
-	<p>Forests on each Host: {{forestsOnHosts}}</p>
-	<p>Replica Clusters: {{replicaClusters}}</p>
-	<p>Replica DBs: {{replicaDBs}}</p>
-	<hr>
-	
+
+
+<div class="row" ng-init="renderChart()">
+  <div class="col-xs-6 col-md-4">
+	<p><b>MasterDB:</b> {{db}}</p>
+	<b>MasterForests:</b><ul ng-repeat="forest in masterForests"><li>{{forest}}</li></ul>
+	<b>AppServer:</b> <ul ng-repeat="appserver in appservers"><li>{{appserver}}</li></ul>
+	<b>Forests on each Host:</b> <ul ng-repeat="(host, forests) in forestsOnHosts">{{host}}<li>{{forests}}</li></ul>
+	<b>Replica Clusters:</b> <ul ng-repeat="cluster in replicaClusters"><li>{{cluster}}</li></ul>
+	<b>Replica DBs:</b> <ul ng-repeat="(cluster, db) in replicaDBs">{{cluster}}<li>{{db}}</li></ul>
+	<hr>	
+  </div>
+  <div class="col-xs-12 col-md-8">
+  		<div class="container">
+			<div id="body"></div>
+		</div>
+  </div>
 </div>
-<div id="test">
-			<div class="container">
-			<div ng-chart="" ng-model='options' style="width: 1200px; height: 480px; border-style: dotted; border-width: 1px;"></div>  
-			</div>
+
 			
 			
-			
-</div>
+		
