@@ -32,7 +32,9 @@ app.controller('MainCtrl', function($scope, $http) {
 	};
 
 });
-
+///////////////////////
+// chart controller  //
+///////////////////////
 app.controller('ChartCtrl', ['$scope', 'DataService', 'Resource',
 	function($scope, DataService, Resource) {
 		$scope.a = "Test";
@@ -62,8 +64,7 @@ app.controller('ChartCtrl', ['$scope', 'DataService', 'Resource',
 					});
 				
 				});
-		
-			
+	
 			
 				pushAppServerToChart($scope.appservers);
 				pushForestsToChart($scope.forestsOnHosts);
